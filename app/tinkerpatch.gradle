@@ -1,0 +1,134 @@
+//apply tinker插件
+apply plugin: 'com.tencent.tinker.patch'
+
+// 每次打包补丁时需要配置的变量
+def baseInfo = "app-1.1.0-0514-17-27-42"
+
+def isDebug = false;
+
+def tinkerEnabled = true
+
+// 下面不需要每次重新配置
+def variantName = isDebug ? "debug" : "release";
+
+def bakPath = isDebug ? file("${buildDir}/bakApk/") : file("bakApk/");
+
+def tinkerPathPrefix = "${bakPath}/${baseInfo}/${variantName}";
+
+def tinkerOldApkPath = "${tinkerPathPrefix}/${project.name}-${variantName}.apk" // 旧APK地址
+
+def tinkerApplyMappingPath = "${tinkerPathPrefix}/${project.name}-${variantName}-mapping.txt" // 旧Mapping文件地址
+
+def tinkerApplyResourcePath = "${tinkerPathPrefix}/${project.name}-${variantName}-R.txt" // 旧R文件地址
+
+def date = new Date().format("MMdd-HH-mm-ss")
+
+tinkerPatch {
+
+    oldApk = tinkerOldApkPath
+
+    ignoreWarning = false
+
+    useSign = true
+
+    tinkerEnable = tinkerEnabled
+
+    buildConfig {
+
+        applyMapping = tinkerApplyMappingPath
+
+        applyResourceMapping = tinkerApplyResourcePath
+
+        tinkerId = android.defaultConfig.versionName;
+
+        keepDexApply = false
+
+        isProtectedApp = false
+    }
+
+    dex {
+
+        dexMode = "jar"
+
+        pattern = ["classes*.dex",
+                   "assets/secondary-dex-?.jar"]
+        loader = [
+                //use sample, let BaseBuildInfo unchangeable with tinker
+                "tinker.sample.android.app.BaseBuildInfo"
+        ]
+    }
+
+    lib {
+        pattern = ["lib/*/*.so"]
+    }
+
+    res {
+        pattern = ["res/*", "assets/*", "resources.arsc", "AndroidManifest.xml"]
+
+        ignoreChange = ["assets/sample_meta.txt"]
+
+        largeModSize = 100
+    }
+
+    packageConfig {
+
+        configField("patchMessage", "tinker is sample to use")
+
+        configField("platform", "all")
+
+        configField("patchVersion", "1.0")
+    }
+    //or you can add config filed outside, or get meta value from old apk
+    //project.tinkerPatch.packageConfig.configField("test1", project.tinkerPatch.packageConfig.getMetaDataFromOldApk("Test"))
+    //project.tinkerPatch.packageConfig.configField("test2", "sample")
+
+    sevenZip {
+
+        zipArtifact = "com.tencent.mm:SevenZip:1.1.10"
+
+//        path = "/usr/local/bin/7za"
+    }
+}
+
+/**
+ * bak apk and mapping
+ */
+android.applicationVariants.all { variant ->
+    /**
+     * task type, you want to bak
+     */
+    def taskName = variant.name
+
+    tasks.all {
+        if ("assemble${taskName.capitalize()}".equalsIgnoreCase(it.name)) {
+
+            it.doLast {
+                copy {
+                    def release = isDebug ? "" : "-${versionName}";
+                    def pathPrefix = "${bakPath}/${project.name}${release}-${date}/${variantName}/"
+                    def name = "${project.name}-${variantName}"
+
+                    def destPath = file(pathPrefix)
+                    from variant.outputs.outputFile
+                    into pathPrefix
+                    rename { String fileName ->
+//                        fileName.replace("${fileNamePrefix}.apk", "${newFileNamePrefix}.apk") // 该语句不适用, 因为我修改了APK的名字
+                        fileName.replace("LshApp_" + "v${variant.versionName}.apk", "${name}.apk")
+                    }
+
+                    from "${buildDir}/outputs/mapping/${variant.dirName}/mapping.txt"
+                    into destPath
+                    rename { String fileName ->
+                        fileName.replace("mapping.txt", "${name}-mapping.txt")
+                    }
+
+                    from "${buildDir}/intermediates/symbols/${variant.dirName}/R.txt"
+                    into destPath
+                    rename { String fileName ->
+                        fileName.replace("R.txt", "${name}-R.txt")
+                    }
+                }
+            }
+        }
+    }
+}
