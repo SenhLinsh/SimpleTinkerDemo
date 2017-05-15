@@ -9,3 +9,6 @@
 .externalNativeBuild
 app/bakApk
 app/补丁
+app/appkey.jks
+app/LshApp_v1.0.0.apk
+app/LshApp_v1.1.0.apk
