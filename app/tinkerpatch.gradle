@@ -2,7 +2,7 @@
 apply plugin: 'com.tencent.tinker.patch'
 
 // 每次打包补丁时需要配置的变量
-def baseInfo = "app-1.1.0-0514-17-27-42"
+def baseInfo = "app-1.0.0-0516-20-40-02"
 
 def isDebug = false;
 
@@ -43,6 +43,10 @@ tinkerPatch {
 
         keepDexApply = false
 
+        /**
+         * 是否使用加固模式，仅仅将变更的类合成补丁。注意，这种模式仅仅可以用于加固应用中。
+         * 如果设置为 true, 生成的补丁包将包含所有的变更类而不是变更文件
+         */
         isProtectedApp = false
     }
 
@@ -52,9 +56,14 @@ tinkerPatch {
 
         pattern = ["classes*.dex",
                    "assets/secondary-dex-?.jar"]
+
+        /**
+         * 它定义了哪些类在加载补丁包的时候会用到, 这些类是通过Tinker无法修改的类，也是一定要放在main dex的类。
+         * Tinker 已经自动把需要的类配置好了, 这个一般不需要配置.
+         */
         loader = [
-                //use sample, let BaseBuildInfo unchangeable with tinker
-                "tinker.sample.android.app.BaseBuildInfo"
+                // 如果有不希望被 Tinker 更改的类, 可放到其中
+                // 如 "tinker.sample.android.app.BaseBuildInfo"
         ]
     }
 
@@ -70,33 +79,28 @@ tinkerPatch {
         largeModSize = 100
     }
 
+    /**
+     * 用于生成补丁包中的 'package_meta.txt' 文件
+     * 可选, 默认生成 "TINKER_ID" 和 "NEW_TINKER_ID"
+     */
     packageConfig {
-
-        configField("patchMessage", "tinker is sample to use")
-
+        /**
+         * 运行时可以通过 TinkerLoadResult.getPackageConfigByName() 得到相应的数值, 但是建议直接通过修改代码来实现，例如BuildConfig
+         * platform 只是一个示范, 你可以使用 sdkVersion / brand 等在 TinkerPatchListener 内解析使用, 这样就可以有条件地加载补丁了
+         */
         configField("platform", "all")
-
-        configField("patchVersion", "1.0")
     }
-    //or you can add config filed outside, or get meta value from old apk
-    //project.tinkerPatch.packageConfig.configField("test1", project.tinkerPatch.packageConfig.getMetaDataFromOldApk("Test"))
-    //project.tinkerPatch.packageConfig.configField("test2", "sample")
 
     sevenZip {
-
         zipArtifact = "com.tencent.mm:SevenZip:1.1.10"
-
-//        path = "/usr/local/bin/7za"
     }
 }
 
 /**
- * bak apk and mapping
+ * 将 APK、Mapping 文件、R 文件复制到指定目录
  */
 android.applicationVariants.all { variant ->
-    /**
-     * task type, you want to bak
-     */
+
     def taskName = variant.name
 
     tasks.all {
@@ -108,20 +112,22 @@ android.applicationVariants.all { variant ->
                     def pathPrefix = "${bakPath}/${project.name}${release}-${date}/${variantName}/"
                     def name = "${project.name}-${variantName}"
 
+                    // 复制APK文件
                     def destPath = file(pathPrefix)
                     from variant.outputs.outputFile
-                    into pathPrefix
+                    into destPath
                     rename { String fileName ->
-//                        fileName.replace("${fileNamePrefix}.apk", "${newFileNamePrefix}.apk") // 该语句不适用, 因为我修改了APK的名字
-                        fileName.replace("LshApp_" + "v${variant.versionName}.apk", "${name}.apk")
+                        fileName.replaceFirst(".+\\.apk", "${name}.apk");
                     }
 
+                    // 复制mapping文件
                     from "${buildDir}/outputs/mapping/${variant.dirName}/mapping.txt"
                     into destPath
                     rename { String fileName ->
                         fileName.replace("mapping.txt", "${name}-mapping.txt")
                     }
 
+                    // 复制R文件
                     from "${buildDir}/intermediates/symbols/${variant.dirName}/R.txt"
                     into destPath
                     rename { String fileName ->
