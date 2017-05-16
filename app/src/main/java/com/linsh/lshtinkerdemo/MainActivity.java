@@ -13,26 +13,21 @@ import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
 
-    private TextView tv1;
-    private TextView tv2;
-    private TextView tv3;
-    private TextView tv4;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        tv1 = (TextView) findViewById(R.id.tv1);
-        tv2 = (TextView) findViewById(R.id.tv2);
-        tv3 = (TextView) findViewById(R.id.tv3);
-        tv4 = (TextView) findViewById(R.id.tv4);
+        TextView tv1 = (TextView) findViewById(R.id.tv1);
+        TextView tv2 = (TextView) findViewById(R.id.tv2);
+        TextView tv3 = (TextView) findViewById(R.id.tv3);
+        TextView tv4 = (TextView) findViewById(R.id.tv4);
 
         tv1.setText("当前版本: " + BuildConfig.VERSION_NAME);
-        tv2.setText("原始版本: " + "1.1.0");
+        tv2.setText("基准版本: " + "1.0.0");
 
-        tv3.setText("插件版本: " + "1.1.1");
-        tv4.setText("描述: " + "补丁for1.1.0");
+        tv3.setText("插件版本: " + "无");
+        tv4.setText("描述: " + "无");
     }
 
     public void update(View view) {
