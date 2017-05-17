@@ -2,26 +2,30 @@
 apply plugin: 'com.tencent.tinker.patch'
 
 // 每次打包补丁时需要配置的变量
-def baseInfo = "app-1.0.0-0516-20-40-02"
+/**
+ * 用于存放生成和读取APK/Mapping/R文件的文件夹名称.
+ * isDebug为true时, 编译时都会将文件复制到 app/build/bakApk 文件夹下, 方便每次Rebuild时都可以将这些文件夹清理掉
+ * isDebug为false时, 文件夹在 app/bakApk 下, 防止Rebuild操作将其清理
+ * 每次打补丁包时, 都必须指定好 isDebug 以及基准APK文件所对应的文件夹
+ */
+def packageName = "app-1.0.0-0516-20-40-02" // 基准APK所对应的文件夹, 每次打补丁时都需要仔细检查此项是否为目标基准APK
 
-def isDebug = false;
+def isDebug = false; // 是否处于Debug模式, 区别在是否将存放基准APK等的文件夹指定在build文件夹之内或者之外
 
-def tinkerEnabled = true
+def tinkerEnabled = true // 开发调试时可以将此选项关闭, 可以避免生成多余的基准包文件
 
 // 下面不需要每次重新配置
 def variantName = isDebug ? "debug" : "release";
 
-def bakPath = isDebug ? file("${buildDir}/bakApk/") : file("bakApk/");
+def bakPath = isDebug ? file("${buildDir}/bakApk/") : file("bakApk/"); // 基准包路径
 
-def tinkerPathPrefix = "${bakPath}/${baseInfo}/${variantName}";
+def tinkerPathPrefix = "${bakPath}/${packageName}/${variantName}";
 
 def tinkerOldApkPath = "${tinkerPathPrefix}/${project.name}-${variantName}.apk" // 旧APK地址
 
 def tinkerApplyMappingPath = "${tinkerPathPrefix}/${project.name}-${variantName}-mapping.txt" // 旧Mapping文件地址
 
 def tinkerApplyResourcePath = "${tinkerPathPrefix}/${project.name}-${variantName}-R.txt" // 旧R文件地址
-
-def date = new Date().format("MMdd-HH-mm-ss")
 
 tinkerPatch {
 
@@ -109,6 +113,7 @@ android.applicationVariants.all { variant ->
             it.doLast {
                 copy {
                     def release = isDebug ? "" : "-${versionName}";
+                    def date = new Date().format("MMdd-HH-mm-ss")
                     def pathPrefix = "${bakPath}/${project.name}${release}-${date}/${variantName}/"
                     def name = "${project.name}-${variantName}"
 
@@ -117,7 +122,6 @@ android.applicationVariants.all { variant ->
                     from variant.outputs.outputFile
                     into destPath
                     rename { String fileName ->
-                        fileName.replaceFirst(".+\\.apk", "${name}.apk");
                     }
 
                     // 复制mapping文件
