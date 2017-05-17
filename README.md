@@ -1,4 +1,4 @@
-# TinkerDemo
+# SimpleTinkerDemo
 快速在项目中集成Tinker
 
 ## 前言
@@ -196,12 +196,15 @@ android.applicationVariants.all { variant ->
     }
 }
 ```
+
 注意：需要修改的地方一般只有最开始的三个变量，其他地方一般只在第一次需要根据自己的需求配置的时候注意一下有没有不合适本项目的地方需要重新编辑一下的。
 
 #### 2. 应用 tinkerpatch.gradle
 在 build.gradle 末尾应用该 tinkerpatch.gradle
 
-``` apply from: 'tinkerpatch.gradle' ```
+``` 
+apply from: 'tinkerpatch.gradle'
+```
 
 注意：尽量放在末尾出，因为 tinkerpatch.gradle 引用了项目版本号，如果放在开头或者其他地方可能会导致报没有配置 tinkerId 的错。
 
